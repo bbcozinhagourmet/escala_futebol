@@ -39,6 +39,10 @@
       padding: 5px;
       min-width: 100px;
     }
+    .stars {
+      color: #FFD700;
+      font-size: 16px;
+    }
     button {
       width: 100%;
       padding: 10px;
@@ -58,6 +62,17 @@
       margin-bottom: 10px;
       padding: 10px;
       border-radius: 5px;
+    }
+    .team-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    .team-skill-total {
+      color: #FFD700;
+      font-size: 14px;
     }
     .share-btn {
       background-color: #800000;
@@ -104,12 +119,23 @@
         <option value="Meio">MEI</option>
         <option value="Ataque">ATA</option>
       </select>
-      <input type="number" id="playerBirthYear" placeholder="Ano Nasc." min="1950" max="2025" />
+      <select id="playerSkill">
+        <option value="1">★ (1 estrela)</option>
+        <option value="2">★★ (2 estrelas)</option>
+        <option value="3" selected>★★★ (3 estrelas)</option>
+        <option value="4">★★★★ (4 estrelas)</option>
+        <option value="5">★★★★★ (5 estrelas)</option>
+      </select>
     </div>
     <button onclick="addPlayer()">Adicionar Novo Jogador</button>
 
     <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
     <button class="import-btn" onclick="document.getElementById('csvFileInput').click()">Importar de Arquivo (CSV)</button>
+    
+    <div style="margin-top: 10px; font-size: 12px; color: #666;">
+      <strong>Formato CSV:</strong> Nome,Posição,Habilidade<br>
+      <strong>Exemplo:</strong> João Silva,Meio,4
+    </div>
 
     <hr style="margin: 20px 0;">
 
@@ -164,7 +190,7 @@
       <option value="Red Menstruation">Red Menstruation</option>
       <option value="Tadala Blue">Tadala Blue</option>
       <option value="Maca Black">Maca Black</option>
-      <option value="Yellow Submarine">Yellow Substation</option>
+      <option value="Yellow Submarine">Yellow Submarine</option>
       </select>
       <input id="teamSize4" min="0" style="width:60px; margin-left: 10px;" type="number" value="4"/>
     </div>
@@ -182,15 +208,10 @@
         const tituloElemento = document.getElementById('tituloComData');
         const hoje = new Date();
         const dia = String(hoje.getDate()).padStart(2, '0');
-        const mes = String(hoje.getMonth() + 1).padStart(2, '0'); // Mês é 0-indexed, então adicione 1
+        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
         const ano = hoje.getFullYear();
 
-        // Obtenha o texto original do título
         const textoOriginal = tituloElemento.textContent;
-
-        // Encontre a posição para inserir a data (por exemplo, após "Futebol Arte")
-        // Se o texto original for "Sorteio Futebol Arte domingo às 8:00 na vila avaí"
-        // Queremos inserir a data após "Arte".
         const parte1 = "Sorteio Futebol Arte";
         const parte2 = "domingo às 8:00 na vila avaí";
 
@@ -201,6 +222,21 @@
   <script>
     let players = JSON.parse(localStorage.getItem("jogadores") || "[]");
     let sortedPlayers = [];
+    
+    // Migrar dados antigos que usavam birthYear para skill
+    players = players.map(player => {
+      if (player.birthYear && !player.skill) {
+        // Converter idade em habilidade padrão (3 estrelas)
+        return {
+          name: player.name,
+          position: player.position,
+          skill: 3
+        };
+      }
+      return player;
+    });
+    localStorage.setItem("jogadores", JSON.stringify(players));
+    
     renderPlayers();
 
     // Mostrar/esconder campos de nomes dos times conforme número de times selecionado
@@ -208,9 +244,9 @@
       radio.addEventListener('change', () => {
         const count = parseInt(radio.value);
         for (let i = 1; i <= 4; i++) {
-          const teamGroup = document.getElementById(`teamGroup${i}`); //
-          if (teamGroup) { //
-            teamGroup.style.display = i <= count ? 'flex' : 'none'; //
+          const teamGroup = document.getElementById(`teamGroup${i}`);
+          if (teamGroup) {
+            teamGroup.style.display = i <= count ? 'flex' : 'none';
           }
         }
       });
@@ -218,22 +254,20 @@
 
     // Chama a função de alteração ao carregar a página para garantir o estado inicial correto
     document.addEventListener('DOMContentLoaded', (event) => {
-        const initialRadio = document.querySelector('input[name="teams"]:checked'); //
-        if (initialRadio) { //
-            const count = parseInt(initialRadio.value); //
-            for (let i = 1; i <= 4; i++) { //
-                const teamGroup = document.getElementById(`teamGroup${i}`); //
-                if (teamGroup) { //
-                    teamGroup.style.display = i <= count ? 'flex' : 'none'; //
+        const initialRadio = document.querySelector('input[name="teams"]:checked');
+        if (initialRadio) {
+            const count = parseInt(initialRadio.value);
+            for (let i = 1; i <= 4; i++) {
+                const teamGroup = document.getElementById(`teamGroup${i}`);
+                if (teamGroup) {
+                    teamGroup.style.display = i <= count ? 'flex' : 'none';
                 }
             }
         }
     });
 
-
-    function calculateAge(birthYear) {
-      const currentYear = new Date().getFullYear();
-      return currentYear - birthYear;
+    function getStarsDisplay(skill) {
+      return '★'.repeat(skill) + '☆'.repeat(5 - skill);
     }
 
     function updateSelectedCount() {
@@ -248,11 +282,10 @@
 
       sortedPlayers.forEach((p, i) => {
         const li = document.createElement("li");
-        const idade = calculateAge(p.birthYear);
         li.innerHTML = `
           <label>
             <input type="checkbox" class="player-checkbox" value="${p.name}" onchange="updateSelectedCount()">
-            ${p.name} (${p.position}) - ${idade} anos
+            ${p.name} (${p.position}) - <span class="stars">${getStarsDisplay(p.skill)}</span>
           </label>
           <span class="remove-player" onclick="removePlayer(${i})">X</span>
         `;
@@ -281,14 +314,14 @@
               if (parts.length === 3) {
                   const name = parts[0].trim();
                   const position = parts[1].trim();
-                  const birthYear = parseInt(parts[2].trim(), 10);
+                  const skill = parseInt(parts[2].trim(), 10);
 
                   const isPlayerNew = !players.some(p => p.name.toLowerCase() === name.toLowerCase());
                   const isPositionValid = validPositions.includes(position);
-                  const isBirthYearValid = !isNaN(birthYear) && birthYear >= 1950 && birthYear <= 2025;
+                  const isSkillValid = !isNaN(skill) && skill >= 1 && skill <= 5;
 
-                  if (name && isPositionValid && isBirthYearValid && isPlayerNew) {
-                      players.push({ name, position, birthYear });
+                  if (name && isPositionValid && isSkillValid && isPlayerNew) {
+                      players.push({ name, position, skill });
                       addedCount++;
                   } else {
                       skippedCount++;
@@ -316,15 +349,10 @@
 
       const name = document.getElementById("playerName").value.trim();
       const position = document.getElementById("playerPosition").value;
-      const birthYear = parseInt(document.getElementById("playerBirthYear").value);
+      const skill = parseInt(document.getElementById("playerSkill").value);
 
       if (!name) {
         alert("Digite o nome do jogador.");
-        return;
-      }
-
-      if (isNaN(birthYear) || birthYear < 1950 || birthYear > 2025) {
-        alert("Ano de nascimento inválido.");
         return;
       }
 
@@ -333,9 +361,8 @@
         return;
       }
 
-      players.push({ name, position, birthYear });
+      players.push({ name, position, skill });
       document.getElementById("playerName").value = "";
-      document.getElementById("playerBirthYear").value = "";
       localStorage.setItem("jogadores", JSON.stringify(players));
       renderPlayers();
     }
@@ -387,7 +414,7 @@
       }
 
       const numTeams = parseInt(document.querySelector('input[name="teams"]:checked').value);
-      const playersPerTeam = 8; // Valor padrão fixo para jogadores por time (você pode mudar para 9 aqui)
+      const playersPerTeam = 8;
 
       if (selectedPlayers.length < numTeams * playersPerTeam) {
         alert(`O número de jogadores selecionados (${selectedPlayers.length}) é insuficiente para formar ${numTeams} times de ${playersPerTeam} jogadores cada.`);
@@ -396,103 +423,167 @@
 
       // Define a ordem de posição baseada na quantidade de jogadores por time
       let positionOrderSchema;
-      if (playersPerTeam === 8) { //
-        positionOrderSchema = ["Goleiro", "Zagueiro", "Zagueiro", "Lateral", "Lateral", "Meio", "Meio", "Ataque"]; //
-      } else if (playersPerTeam === 9) { //
-        positionOrderSchema = ["Goleiro", "Zagueiro", "Zagueiro", "Lateral", "Lateral", "Meio", "Meio", "Ataque", "Ataque"]; //
+      if (playersPerTeam === 8) {
+        positionOrderSchema = ["Goleiro", "Zagueiro", "Zagueiro", "Lateral", "Lateral", "Meio", "Meio", "Ataque"];
+      } else if (playersPerTeam === 9) {
+        positionOrderSchema = ["Goleiro", "Zagueiro", "Zagueiro", "Lateral", "Lateral", "Meio", "Meio", "Ataque", "Ataque"];
       } else {
           alert("Erro: Tamanho de time inválido configurado internamente.");
           return;
       }
 
-      const positionPriority = { //
-        "Goleiro": 1, //
-        "Zagueiro": 2, //
-        "Lateral": 3, //
-        "Meio": 4, //
-        "Ataque": 5 //
+      const positionPriority = {
+        "Goleiro": 1,
+        "Zagueiro": 2,
+        "Lateral": 3,
+        "Meio": 4,
+        "Ataque": 5
       };
 
-      let teams = Array.from({ length: numTeams }, () => []); //
+      let teams = Array.from({ length: numTeams }, () => []);
 
-      // Agrupamento de jogadores por posição e ordenação por idade
-      const playersByPosition = {}; //
-      for (const pos of Object.keys(positionPriority)) { //
-          playersByPosition[pos] = selectedPlayers.filter(p => p.position === pos) //
-                                                 .sort((a, b) => a.birthYear - b.birthYear); //
+      // Agrupamento de jogadores por posição e ordenação por habilidade (decrescente)
+      const playersByPosition = {};
+      for (const pos of Object.keys(positionPriority)) {
+          playersByPosition[pos] = selectedPlayers.filter(p => p.position === pos)
+                                                 .sort((a, b) => b.skill - a.skill); // Ordem decrescente de habilidade
       }
 
-      let playerAddedToTeam = new Set(); // Para controlar jogadores já adicionados
+      let playerAddedToTeam = new Set();
 
-      // Tenta distribuir os jogadores seguindo o esquema de posição
-      let currentTeamForSchema = 0; // Controla qual time está recebendo o jogador na rodada
-      for (let round = 0; round < playersPerTeam; round++) { // Rodadas para preencher cada posição do esquema
-          for (let i = 0; i < numTeams; i++) { // Iterar sobre o número de times
-              const teamToFill = (currentTeamForSchema + i) % numTeams; // Alterna o time de início
-              const requiredPosition = positionOrderSchema[round]; //
+      // Distribuição inicial por posição e habilidade
+      let currentTeamForSchema = 0;
+      for (let round = 0; round < playersPerTeam; round++) {
+          for (let i = 0; i < numTeams; i++) {
+              const teamToFill = (currentTeamForSchema + i) % numTeams;
+              const requiredPosition = positionOrderSchema[round];
 
-              let playerFound = false; //
+              let playerFound = false;
               // Procura um jogador para a posição específica da rodada que ainda não foi adicionado
-              for (let j = 0; j < playersByPosition[requiredPosition].length; j++) { //
-                  const player = playersByPosition[requiredPosition][j]; //
-                  if (!playerAddedToTeam.has(player.name)) { //
-                      teams[teamToFill].push(player); //
-                      playerAddedToTeam.add(player.name); //
-                      playerFound = true; //
-                      break; //
+              for (let j = 0; j < playersByPosition[requiredPosition].length; j++) {
+                  const player = playersByPosition[requiredPosition][j];
+                  if (!playerAddedToTeam.has(player.name)) {
+                      teams[teamToFill].push(player);
+                      playerAddedToTeam.add(player.name);
+                      playerFound = true;
+                      break;
                   }
               }
 
               // Se não encontrou um jogador para a posição específica, pega o próximo disponível em ordem de prioridade
-              if (!playerFound) { //
-                  const availablePlayers = selectedPlayers.filter(p => !playerAddedToTeam.has(p.name)) //
-                                                          .sort((a,b) => positionPriority[a.position] - positionPriority[b.position] || a.birthYear - b.birthYear); //
+              if (!playerFound) {
+                  const availablePlayers = selectedPlayers.filter(p => !playerAddedToTeam.has(p.name))
+                                                          .sort((a,b) => positionPriority[a.position] - positionPriority[b.position] || b.skill - a.skill);
 
-                  if (availablePlayers.length > 0) { //
-                      teams[teamToFill].push(availablePlayers[0]); //
-                      playerAddedToTeam.add(availablePlayers[0].name); //
+                  if (availablePlayers.length > 0) {
+                      teams[teamToFill].push(availablePlayers[0]);
+                      playerAddedToTeam.add(availablePlayers[0].name);
                   }
               }
           }
-          currentTeamForSchema++; // Avança para o próximo time inicial na próxima rodada
+          currentTeamForSchema++;
       }
 
       // Distribui os jogadores restantes (se houver)
-      const remainingPlayers = selectedPlayers.filter(p => !playerAddedToTeam.has(p.name)) //
-                                              .sort((a,b) => positionPriority[a.position] - positionPriority[b.position] || a.birthYear - b.birthYear); //
+      const remainingPlayers = selectedPlayers.filter(p => !playerAddedToTeam.has(p.name))
+                                              .sort((a,b) => positionPriority[a.position] - positionPriority[b.position] || b.skill - a.skill);
 
-      for (const player of remainingPlayers) { //
-          // Encontra o time com menos jogadores
-          let minPlayers = Infinity; //
-          let targetTeamIndex = -1; //
-          for (let i = 0; i < numTeams; i++) { //
-              if (teams[i].length < minPlayers) { //
-                  minPlayers = teams[i].length; //
-                  targetTeamIndex = i; //
+      for (const player of remainingPlayers) {
+          // Encontra o time com menor habilidade total para equilibrar
+          let minSkillTotal = Infinity;
+          let targetTeamIndex = -1;
+          for (let i = 0; i < numTeams; i++) {
+              const teamSkillTotal = teams[i].reduce((sum, p) => sum + p.skill, 0);
+              if (teamSkillTotal < minSkillTotal || (teamSkillTotal === minSkillTotal && teams[i].length < teams[targetTeamIndex]?.length || 0)) {
+                  minSkillTotal = teamSkillTotal;
+                  targetTeamIndex = i;
               }
           }
-          if (targetTeamIndex !== -1) { //
-              teams[targetTeamIndex].push(player); //
+          if (targetTeamIndex !== -1) {
+              teams[targetTeamIndex].push(player);
           }
       }
 
-      window.currentTeams = teams; //
+      // Tentar equilibrar melhor os times trocando jogadores
+      balanceTeams(teams);
 
-      const display = document.getElementById("teamsDisplay"); //
-      display.innerHTML = ""; //
+      window.currentTeams = teams;
 
-      teams.forEach((team, i) => { //
-        const teamNameInput = document.getElementById(`teamName${i + 1}`); //
-        const teamName = teamNameInput && teamNameInput.value.trim() !== "" ? teamNameInput.value.trim() : `Time ${i + 1}`; //
+      const display = document.getElementById("teamsDisplay");
+      display.innerHTML = "";
+
+      teams.forEach((team, i) => {
+        const teamNameInput = document.getElementById(`teamName${i + 1}`);
+        const teamName = teamNameInput && teamNameInput.value.trim() !== "" ? teamNameInput.value.trim() : `Time ${i + 1}`;
+
+        // Calcula o total de habilidade do time
+        const teamSkillTotal = team.reduce((sum, p) => sum + p.skill, 0);
+        const avgSkill = (teamSkillTotal / team.length).toFixed(1);
 
         // Ordena os jogadores do time pela posição para exibição
-        const sortedTeam = [...team].sort((a, b) => positionPriority[a.position] - positionPriority[b.position] || a.name.localeCompare(b.name)); //
-        const div = document.createElement("div"); //
-        div.className = "team"; //
-        div.innerHTML = `<strong>${teamName}</strong><br>` + //
-                        sortedTeam.map(p => `${p.name} (${p.position}) - ${calculateAge(p.birthYear)} anos`).join('<br>'); //
-        display.appendChild(div); //
+        const sortedTeam = [...team].sort((a, b) => positionPriority[a.position] - positionPriority[b.position] || a.name.localeCompare(b.name));
+        const div = document.createElement("div");
+        div.className = "team";
+        
+        const headerDiv = document.createElement("div");
+        headerDiv.className = "team-header";
+        headerDiv.innerHTML = `
+          <span>${teamName}</span>
+          <span class="team-skill-total">Total: ${teamSkillTotal} ★ (Média: ${avgSkill})</span>
+        `;
+        
+        const playersDiv = document.createElement("div");
+        playersDiv.innerHTML = sortedTeam.map(p => `${p.name} (${p.position}) - <span class="stars">${getStarsDisplay(p.skill)}</span>`).join('<br>');
+        
+        div.appendChild(headerDiv);
+        div.appendChild(playersDiv);
+        display.appendChild(div);
       });
+    }
+
+    function balanceTeams(teams) {
+      const maxIterations = 100;
+      let improved = true;
+      let iterations = 0;
+
+      while (improved && iterations < maxIterations) {
+        improved = false;
+        iterations++;
+
+        // Calcula totais de habilidade de cada time
+        const teamTotals = teams.map(team => team.reduce((sum, p) => sum + p.skill, 0));
+        const minTotal = Math.min(...teamTotals);
+        const maxTotal = Math.max(...teamTotals);
+        
+        // Se a diferença é muito pequena, para o balanceamento
+        if (maxTotal - minTotal <= 2) break;
+
+        const minTeamIndex = teamTotals.indexOf(minTotal);
+        const maxTeamIndex = teamTotals.indexOf(maxTotal);
+
+        // Tenta trocar jogadores entre o time com maior e menor total
+        for (let i = 0; i < teams[maxTeamIndex].length && !improved; i++) {
+          for (let j = 0; j < teams[minTeamIndex].length && !improved; j++) {
+            const playerMax = teams[maxTeamIndex][i];
+            const playerMin = teams[minTeamIndex][j];
+
+            // Só troca se for da mesma posição e melhorar o equilíbrio
+            if (playerMax.position === playerMin.position && playerMax.skill > playerMin.skill) {
+              const newMaxTotal = teamTotals[maxTeamIndex] - playerMax.skill + playerMin.skill;
+              const newMinTotal = teamTotals[minTeamIndex] - playerMin.skill + playerMax.skill;
+              const newDifference = Math.abs(newMaxTotal - newMinTotal);
+              const currentDifference = Math.abs(teamTotals[maxTeamIndex] - teamTotals[minTeamIndex]);
+
+              if (newDifference < currentDifference) {
+                // Faz a troca
+                teams[maxTeamIndex][i] = playerMin;
+                teams[minTeamIndex][j] = playerMax;
+                improved = true;
+              }
+            }
+          }
+        }
+      }
     }
 
     function shareTeams() {
@@ -501,31 +592,36 @@
         return;
       }
 
-      let message = "🏆 Escalação dos Times:\n\n"; //
-      const positionOrder = { //
-        "Goleiro": 1, //
-        "Zagueiro": 2, //
-        "Lateral": 3, //
-        "Meio": 4, //
-        "Ataque": 5 //
+      let message = "🏆 Escalação dos Times:\n\n";
+      const positionOrder = {
+        "Goleiro": 1,
+        "Zagueiro": 2,
+        "Lateral": 3,
+        "Meio": 4,
+        "Ataque": 5
       };
 
-      window.currentTeams.forEach((team, i) => { //
-        const teamNameInput = document.getElementById(`teamName${i + 1}`); //
-        const teamName = teamNameInput && teamNameInput.value.trim() !== "" ? teamNameInput.value.trim() : `Time ${i + 1}`; //
+      window.currentTeams.forEach((team, i) => {
+        const teamNameInput = document.getElementById(`teamName${i + 1}`);
+        const teamName = teamNameInput && teamNameInput.value.trim() !== "" ? teamNameInput.value.trim() : `Time ${i + 1}`;
 
-        message += `*${teamName}*\n`; //
+        const teamSkillTotal = team.reduce((sum, p) => sum + p.skill, 0);
+        const avgSkill = (teamSkillTotal / team.length).toFixed(1);
+
+        message += `*${teamName}* (Total: ${teamSkillTotal}★ | Média: ${avgSkill})\n`;
+        
         // Ordena os jogadores do time pela posição antes de adicioná-los à mensagem
-        const sortedTeam = [...team].sort((a, b) => positionOrder[a.position] - positionOrder[b.position]); //
+        const sortedTeam = [...team].sort((a, b) => positionOrder[a.position] - positionOrder[b.position]);
 
-        sortedTeam.forEach(p => { //
-          message += `- ${p.name} (${p.position})\n`; //
+        sortedTeam.forEach(p => {
+          const stars = '★'.repeat(p.skill);
+          message += `- ${p.name} (${p.position}) ${stars}\n`;
         });
-        message += "\n"; //
+        message += "\n";
       });
 
-      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`; //
-      window.open(whatsappUrl, '_blank'); //
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
     }
 
     document.getElementById("csvFileInput").addEventListener("change", handleFileSelect);
