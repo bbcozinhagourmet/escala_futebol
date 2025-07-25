@@ -1,7 +1,25 @@
+const CACHE_NAME = 'escala-futebol-cache-v1';
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/style.css',
+  '/script.js',
+  '/icon-192.png',
+  '/icon-512.png'
+];
+
 self.addEventListener('install', event => {
-  console.log('Service Worker instalado');
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      return cache.addAll(urlsToCache);
+    })
+  );
 });
 
 self.addEventListener('fetch', event => {
-  event.respondWith(fetch(event.request));
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      return response || fetch(event.request);
+    })
+  );
 });
