@@ -1,52 +1,58 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#ffffff"/>
-    <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="icon-192.png" type="image/png">
-    <title>Escala Futebol</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#ffffff"/>
+  <title>Escala Futebol</title>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="icon-192.png" type="image/png">
 </head>
 <body>
-    <h1>Bem-vindo ao Escala Futebol</h1>
-    <p>Agora em versão app PWA!</p>
-    <button id="installBtn" style="display:none;">Instalar App</button>
+  <h1>Bem-vindo ao Escala Futebol</h1>
+  <p>Agora em versão app PWA!</p>
 
-    <script src="script.js"></script>
-    <script>
-        let deferredPrompt;
-        const installBtn = document.getElementById('installBtn');
+  <button id="installBtn" style="display: none;">Instalar App</button>
 
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            installBtn.style.display = 'block';
+  <script src="script.js"></script>
+
+  <!-- Lógica do botão de instalação -->
+  <script>
+    let deferredPrompt;
+    const installBtn = document.getElementById('installBtn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      installBtn.style.display = 'block';
+    });
+
+    installBtn.addEventListener('click', () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('Usuário aceitou instalar o app');
+          } else {
+            console.log('Usuário recusou instalar o app');
+          }
+          deferredPrompt = null;
         });
+      }
+    });
+  </script>
 
-        installBtn.addEventListener('click', () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then(choiceResult => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('Usuário aceitou a instalação');
-                    } else {
-                        console.log('Usuário recusou a instalação');
-                    }
-                    deferredPrompt = null;
-                    installBtn.style.display = 'none';
-
-            if ('serviceWorker' in navigator) {
-               window.addEventListener('load', () => {
-               navigator.serviceWorker.register('service-worker.js')
-               .then(() => console.log('Service Worker registrado'))
-               .catch(err => console.error('Erro ao registrar o SW:', err));
-
-                });
-            }
-        });
-    </script>
+  <!-- Registro do service worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js')
+          .then(reg => console.log('Service Worker registrado:', reg.scope))
+          .catch(err => console.error('Erro ao registrar o Service Worker:', err));
+      });
+    }
+  </script>
 </body>
 </html>
