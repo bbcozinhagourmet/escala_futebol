@@ -1,10 +1,10 @@
 {
-  "name": "Escala Futebol",
+  "name": "Escala_Futebol",
   "short_name": "Escala",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#0d47a1",
+  "theme_color": "#007bff",
   "icons": [
     {
       "src": "icon-192.png",
