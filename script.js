@@ -1,1 +1,1 @@
-console.log('Escala Futebol carregado');
+console.log('script loaded');
