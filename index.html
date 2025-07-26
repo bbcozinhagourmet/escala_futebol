@@ -100,7 +100,7 @@
         <option value="Meio">MEI</option>
         <option value="Ataque">ATA</option>
       </select>
-      <input type="number" id="playerBirthYear" placeholder="Ano Nasc." min="1950" max="2025" />
+      <input type="number" id="playerSkill" placeholder="Habilidade (1 a 5)" min="1" max="5" />
     </div>
     <button onclick="addPlayer()">Adicionar Novo Jogador</button>
 
@@ -227,9 +227,8 @@
     });
 
 
-    function calculateAge(birthYear) {
-      const currentYear = new Date().getFullYear();
-      return currentYear - birthYear;
+    function formatSkill(skill) {
+      return `Habilidade: ${skill}`;
     }
 
     function updateSelectedCount() {
@@ -244,11 +243,11 @@
 
       sortedPlayers.forEach((p, i) => {
         const li = document.createElement("li");
-        const idade = calculateAge(p.birthYear);
+        const skill = formatSkill(p.skill);
         li.innerHTML = `
           <label>
             <input type="checkbox" class="player-checkbox" value="${p.name}" onchange="updateSelectedCount()">
-            ${p.name} (${p.position}) - ${idade} anos
+            ${p.name} (${p.position}) - ${idade} 
           </label>
           <span class="remove-player" onclick="removePlayer(${i})">X</span>
         `;
@@ -277,14 +276,14 @@
               if (parts.length === 3) {
                   const name = parts[0].trim();
                   const position = parts[1].trim();
-                  const birthYear = parseInt(parts[2].trim(), 10);
+                  const skill = parseInt(parts[2].trim(), 10);
 
                   const isPlayerNew = !players.some(p => p.name.toLowerCase() === name.toLowerCase());
                   const isPositionValid = validPositions.includes(position);
-                  const isBirthYearValid = !isNaN(birthYear) && birthYear >= 1950 && birthYear <= 2025;
+                  const isSkillValid = !isNaN(skill) && skill >= 1950 && skill <= 2025;
 
-                  if (name && isPositionValid && isBirthYearValid && isPlayerNew) {
-                      players.push({ name, position, birthYear });
+                  if (name && isPositionValid && isSkillValid && isPlayerNew) {
+                      players.push({ name, position, skill });
                       addedCount++;
                   } else {
                       skippedCount++;
@@ -312,14 +311,14 @@
 
       const name = document.getElementById("playerName").value.trim();
       const position = document.getElementById("playerPosition").value;
-      const birthYear = parseInt(document.getElementById("playerBirthYear").value);
+      const skill = parseInt(document.getElementById("playerSkill").value);
 
       if (!name) {
         alert("Digite o nome do jogador.");
         return;
       }
 
-      if (isNaN(birthYear) || birthYear < 1950 || birthYear > 2025) {
+      if (isNaN(skill) || skill < 1950 || skill > 2025) {
         alert("Ano de nascimento inválido.");
         return;
       }
@@ -329,9 +328,9 @@
         return;
       }
 
-      players.push({ name, position, birthYear });
+      players.push({ name, position, skill });
       document.getElementById("playerName").value = "";
-      document.getElementById("playerBirthYear").value = "";
+      document.getElementById("playerSkill").value = "";
       localStorage.setItem("jogadores", JSON.stringify(players));
       renderPlayers();
     }
@@ -415,7 +414,7 @@
       const playersByPosition = {}; //
       for (const pos of Object.keys(positionPriority)) { //
           playersByPosition[pos] = selectedPlayers.filter(p => p.position === pos) //
-                                                 .sort((a, b) => a.birthYear - b.birthYear); //
+                                                 .sort((a, b) => b.skill - a.skill); //
       }
 
       let playerAddedToTeam = new Set(); // Para controlar jogadores já adicionados
@@ -442,7 +441,7 @@
               // Se não encontrou um jogador para a posição específica, pega o próximo disponível em ordem de prioridade
               if (!playerFound) { //
                   const availablePlayers = selectedPlayers.filter(p => !playerAddedToTeam.has(p.name)) //
-                                                          .sort((a,b) => positionPriority[a.position] - positionPriority[b.position] || a.birthYear - b.birthYear); //
+                                                          .sort((a,b) => positionPriority[a.position] - positionPriority[b.position] || b.skill - a.skill); //
 
                   if (availablePlayers.length > 0) { //
                       teams[teamToFill].push(availablePlayers[0]); //
@@ -455,7 +454,7 @@
 
       // Distribui os jogadores restantes (se houver)
       const remainingPlayers = selectedPlayers.filter(p => !playerAddedToTeam.has(p.name)) //
-                                              .sort((a,b) => positionPriority[a.position] - positionPriority[b.position] || a.birthYear - b.birthYear); //
+                                              .sort((a,b) => positionPriority[a.position] - positionPriority[b.position] || b.skill - a.skill); //
 
       for (const player of remainingPlayers) { //
           // Encontra o time com menos jogadores
@@ -486,7 +485,7 @@
         const div = document.createElement("div"); //
         div.className = "team"; //
         div.innerHTML = `<strong>${teamName}</strong><br>` + //
-                        sortedTeam.map(p => `${p.name} (${p.position}) - ${calculateAge(p.birthYear)} anos`).join('<br>'); //
+                        sortedTeam.map(p => `${p.name} (${p.position}) - ${formatSkill(p.skill)} `).join('<br>'); //
         display.appendChild(div); //
       });
     }
