@@ -260,57 +260,49 @@
     }
 
      function handleFileSelect(event) {
-  const file = event.target.files[0];
-  if (!file) return;
+   const file = event.target.files[0];
+   if (!file) return;
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const text = e.target.result;
-    const lines = text.split('
-').filter(line => line.trim() !== '');
+   const reader = new FileReader();
+   reader.onload = function(e) {
+          const text = e.target.result;
+          const lines = text.split('\n').filter(line => line.trim() !== '');
 
-    let addedCount = 0;
-    let skippedCount = 0;
-    const validPositions = ["Goleiro", "Zagueiro", "Lateral", "Meio", "Ataque"];
+          let addedCount = 0;
+          let skippedCount = 0;
+          const validPositions = ["Goleiro", "Zagueiro", "Lateral", "Meio", "Ataque"];
 
-    // Detecta se é cabeçalho do Google Forms
-    const isGoogleForms = lines[0].toLowerCase().includes("carimbo") || lines[0].toLowerCase().includes("nome completo");
-    if (isGoogleForms) lines.shift(); // Remove o cabeçalho
+          lines.forEach(line => {
+              const parts = line.split(',');
+              if (parts.length === 3) {
+                  const name = parts[0].trim();
+                  const position = parts[1].trim();
+                  const birthYear = parseInt(parts[2].trim(), 10);
 
-    lines.forEach(line => {
-      const parts = line.split(',');
+                  const isPlayerNew = !players.some(p => p.name.toLowerCase() === name.toLowerCase());
+                  const isPositionValid = validPositions.includes(position);
+                  const isBirthYearValid = !isNaN(birthYear) && birthYear >= 1950 && birthYear <= 2025;
 
-      if (parts.length >= 4) {
-        const name = parts[1].trim();
-        const position = parts[2].trim();
-        const birthYear = parseInt(parts[3].trim(), 10);
+                  if (name && isPositionValid && isBirthYearValid && isPlayerNew) {
+                      players.push({ name, position, birthYear });
+                      addedCount++;
+                  } else {
+                      skippedCount++;
+                  }
+              } else {
+                  skippedCount++;
+              }
+          });
 
-        const isPlayerNew = !players.some(p => p.name.toLowerCase() === name.toLowerCase());
-        const isPositionValid = validPositions.includes(position);
-        const isBirthYearValid = !isNaN(birthYear) && birthYear >= 1950 && birthYear <= 2025;
-
-        if (name && isPositionValid && isBirthYearValid && isPlayerNew) {
-          players.push({ name, position, birthYear });
-          addedCount++;
-        } else {
-          skippedCount++;
-        }
-      } else {
-        skippedCount++;
-      }
-    });
-
-    if (addedCount > 0) {
-      localStorage.setItem("jogadores", JSON.stringify(players));
-      renderPlayers();
+          if (addedCount > 0) {
+              localStorage.setItem("jogadores", JSON.stringify(players));
+              renderPlayers();
+          }
+          alert(`${addedCount} jogadores importados com sucesso!\n${skippedCount} linhas foram ignoradas (dados inválidos ou duplicados).`);
+      };
+      reader.readAsText(file);
+      event.target.value = '';
     }
-
-    alert(`${addedCount} jogadores importados com sucesso!
-${skippedCount} linhas foram ignoradas (dados inválidos ou duplicados).`);
-  };
-  reader.readAsText(file);
-  event.target.value = '';
-}
 
     function addPlayer() {
       if (players.length >= 50) {
