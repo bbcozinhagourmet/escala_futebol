@@ -280,7 +280,7 @@
 
                   const isPlayerNew = !players.some(p => p.name.toLowerCase() === name.toLowerCase());
                   const isPositionValid = validPositions.includes(position);
-                  const isSkillValid = !isNaN(skill) && skill >= 1950 && skill <= 2025;
+                  const isSkillValid = !isNaN(skill) && skill >= 1 && skill <= 5;
 
                   if (name && isPositionValid && isSkillValid && isPlayerNew) {
                       players.push({ name, position, skill });
