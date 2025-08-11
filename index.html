@@ -410,58 +410,132 @@
         age: calculateAge(p.birthYear)
       }));
 
-      // Separa jogadores especiais dos demais
-      const specialPlayersSelected = playersWithAge.filter(p => isSpecialPlayer(p.name));
-      const regularPlayers = playersWithAge.filter(p => !isSpecialPlayer(p.name));
-
-      // Cria grupos de idade para melhor distribuição
-      const ageGroups = {};
-      regularPlayers.forEach(player => {
-        const ageGroup = Math.floor(player.age / 5) * 5; // Agrupa por faixas de 5 anos
-        if (!ageGroups[ageGroup]) {
-          ageGroups[ageGroup] = [];
-        }
-        ageGroups[ageGroup].push(player);
-      });
-
-      // Embaralha cada grupo de idade
-      Object.keys(ageGroups).forEach(group => {
-        ageGroups[group] = shuffleArray(ageGroups[group]);
-      });
-
-      // Ordena os grupos por idade (mais velhos primeiro) e depois embaralha dentro de cada grupo
-      const sortedAgeGroups = Object.keys(ageGroups)
-        .sort((a, b) => parseInt(b) - parseInt(a))
-        .map(group => ageGroups[group]);
-
-      // Distribui os jogadores regulares usando snake draft
-      let teams = Array.from({ length: numTeams }, () => []);
-      let currentTeam = 0;
-      let direction = 1;
-
-      // Primeiro, coloca os jogadores especiais em times diferentes
-      specialPlayersSelected.forEach((player, index) => {
-        teams[index].push(player);
-      });
-
-      // Depois distribui os jogadores regulares
-      sortedAgeGroups.forEach(group => {
-        group.forEach(player => {
-          teams[currentTeam].push(player);
-          
-          currentTeam += direction;
-          if (currentTeam >= numTeams || currentTeam < 0) {
-            direction *= -1;
-            currentTeam += direction;
-          }
-        });
-      });
+      // Distribui jogadores usando algoritmo balanceado
+      const teams = distributePlayersBalanced(playersWithAge, numTeams);
 
       // Armazena os times atuais globalmente
       window.currentTeams = teams;
 
       // Exibe os times
       displayTeams(teams);
+    }
+
+    function distributePlayersBalanced(players, numTeams) {
+      // Separa jogadores especiais dos demais
+      const specialPlayers = players.filter(p => isSpecialPlayer(p.name));
+      const regularPlayers = players.filter(p => !isSpecialPlayer(p.name));
+
+      // Agrupa jogadores por posição
+      const playersByPosition = {
+        'Goleiro': [],
+        'Zagueiro': [],
+        'Lateral': [],
+        'Meio': [],
+        'Ataque': []
+      };
+
+      // Separa jogadores especiais por posição
+      const specialByPosition = {
+        'Goleiro': [],
+        'Zagueiro': [],
+        'Lateral': [],
+        'Meio': [],
+        'Ataque': []
+      };
+
+      specialPlayers.forEach(player => {
+        specialByPosition[player.position].push(player);
+      });
+
+      regularPlayers.forEach(player => {
+        playersByPosition[player.position].push(player);
+      });
+
+      // Ordena cada posição por idade (mais velhos primeiro) e depois embaralha grupos de idade similar
+      Object.keys(playersByPosition).forEach(position => {
+        playersByPosition[position] = balanceByAge(playersByPosition[position]);
+        specialByPosition[position] = balanceByAge(specialByPosition[position]);
+      });
+
+      // Cria os times vazios
+      let teams = Array.from({ length: numTeams }, () => []);
+
+      // Primeiro distribui jogadores especiais garantindo que fiquem em times diferentes
+      let specialTeamIndex = 0;
+      Object.keys(specialByPosition).forEach(position => {
+        specialByPosition[position].forEach(player => {
+          teams[specialTeamIndex].push(player);
+          specialTeamIndex = (specialTeamIndex + 1) % numTeams;
+        });
+      });
+
+      // Agora distribui o resto dos jogadores por posição usando snake draft
+      const positions = ['Goleiro', 'Zagueiro', 'Lateral', 'Meio', 'Ataque'];
+      
+      positions.forEach(position => {
+        let currentTeam = 0;
+        let direction = 1;
+        
+        playersByPosition[position].forEach(player => {
+          // Encontra o time com menos jogadores dessa posição
+          let bestTeam = findBestTeamForPosition(teams, position);
+          teams[bestTeam].push(player);
+        });
+      });
+
+      return teams;
+    }
+
+    function balanceByAge(players) {
+      if (players.length === 0) return players;
+      
+      // Agrupa por faixas de idade de 3 anos para ter grupos menores e mais balanceados
+      const ageGroups = {};
+      players.forEach(player => {
+        const ageGroup = Math.floor(player.age / 3) * 3;
+        if (!ageGroups[ageGroup]) {
+          ageGroups[ageGroup] = [];
+        }
+        ageGroups[ageGroup].push(player);
+      });
+
+      // Embaralha cada grupo e depois junta tudo ordenado por idade
+      const result = [];
+      Object.keys(ageGroups)
+        .sort((a, b) => parseInt(b) - parseInt(a)) // Mais velhos primeiro
+        .forEach(group => {
+          const shuffledGroup = shuffleArray(ageGroups[group]);
+          result.push(...shuffledGroup);
+        });
+
+      return result;
+    }
+
+    function findBestTeamForPosition(teams, position) {
+      // Conta quantos jogadores de cada posição cada time tem
+      const positionCounts = teams.map(team => 
+        team.filter(player => player.position === position).length
+      );
+
+      // Encontra o time com menos jogadores dessa posição
+      const minCount = Math.min(...positionCounts);
+      const teamsWithMinCount = positionCounts
+        .map((count, index) => ({ count, index }))
+        .filter(team => team.count === minCount);
+
+      // Se houver empate, escolhe o time com menos jogadores no total
+      if (teamsWithMinCount.length === 1) {
+        return teamsWithMinCount[0].index;
+      }
+
+      let bestTeam = teamsWithMinCount[0];
+      teamsWithMinCount.forEach(team => {
+        if (teams[team.index].length < teams[bestTeam.index].length) {
+          bestTeam = team;
+        }
+      });
+
+      return bestTeam.index;
     }
 
     function shuffleArray(array) {
@@ -494,8 +568,27 @@
         // Calcula idade média do time
         const averageAge = team.length > 0 ? (team.reduce((sum, p) => sum + p.age, 0) / team.length).toFixed(1) : 0;
         
+        // Conta jogadores por posição
+        const positionCounts = {
+          'Goleiro': 0,
+          'Zagueiro': 0,
+          'Lateral': 0,
+          'Meio': 0,
+          'Ataque': 0
+        };
+        
+        team.forEach(player => {
+          positionCounts[player.position]++;
+        });
+        
+        const positionSummary = Object.entries(positionCounts)
+          .filter(([pos, count]) => count > 0)
+          .map(([pos, count]) => `${pos.charAt(0)}${pos.charAt(1)}${pos.charAt(2)}: ${count}`)
+          .join(' | ');
+        
         html += `<div class="team">`;
         html += `<h3>${teamName} (${team.length} jogadores - Idade média: ${averageAge} anos)</h3>`;
+        html += `<p><strong>Posições:</strong> ${positionSummary}</p>`;
         html += `<ul>`;
         
         sortedTeam.forEach(p => {
