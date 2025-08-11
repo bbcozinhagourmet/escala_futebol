@@ -375,262 +375,54 @@
       }
     }
 
-    function sortTeams() {
-  const selectedPlayers = getSelectedPlayers();
-  if (selectedPlayers.length === 0) {
-    alert("Selecione pelo menos um jogador para o sorteio.");
-    return;
-  }
-
-  const numTeams = parseInt(document.querySelector('input[name="teams"]:checked').value);
-  const playersPerTeam = 7;
-
-  if (selectedPlayers.length < numTeams * playersPerTeam) {
-    alert(`O número de jogadores selecionados (${selectedPlayers.length}) é insuficiente para formar ${numTeams} times de ${playersPerTeam} jogadores cada.`);
-    return;
-  }
-
-  // Agrupa jogadores por posição e ordena por idade (mais novos primeiro para equilibrar)
-  const playersByPosition = {
-    "Goleiro": selectedPlayers.filter(p => p.position === "Goleiro").sort((a, b) => b.birthYear - a.birthYear),
-    "Zagueiro": selectedPlayers.filter(p => p.position === "Zagueiro").sort((a, b) => b.birthYear - a.birthYear),
-    "Lateral": selectedPlayers.filter(p => p.position === "Lateral").sort((a, b) => b.birthYear - a.birthYear),
-    "Meio": selectedPlayers.filter(p => p.position === "Meio").sort((a, b) => b.birthYear - a.birthYear),
-    "Ataque": selectedPlayers.filter(p => p.position === "Ataque").sort((a, b) => b.birthYear - a.birthYear)
-  };
-
-  let teams = Array.from({ length: numTeams }, () => []);
-  let usedPlayers = new Set();
-
-  // FASE 1: Distribui goleiros (1 por time, obrigatório)
-  for (let teamIndex = 0; teamIndex < numTeams; teamIndex++) {
-    if (playersByPosition["Goleiro"].length > teamIndex) {
-      const goalkeeper = playersByPosition["Goleiro"][teamIndex];
-      teams[teamIndex].push(goalkeeper);
-      usedPlayers.add(goalkeeper.name);
-    }
-  }
-
-  // FASE 2: Distribui outras posições de forma balanceada
-  const positions = ["Zagueiro", "Lateral", "Meio", "Ataque"];
-  
-  // Para cada posição, distribui de forma equilibrada
-  positions.forEach(position => {
-    const availablePlayers = playersByPosition[position].filter(p => !usedPlayers.has(p.name));
-    
-    // Distribui os jogadores desta posição de forma circular entre os times
-    let teamIndex = 0;
-    availablePlayers.forEach(player => {
-      // Encontra o time com menos jogadores desta posição
-      let bestTeam = 0;
-      let minCount = teams[0].filter(p => p.position === position).length;
-      
-      for (let i = 1; i < numTeams; i++) {
-        const count = teams[i].filter(p => p.position === position).length;
-        if (count < minCount) {
-          minCount = count;
-          bestTeam = i;
-        }
-      }
-      
-      teams[bestTeam].push(player);
-      usedPlayers.add(player.name);
-    });
-  });
-
-  // FASE 3: Preenche os times até atingir o número desejado de jogadores
-  while (teams.some(team => team.length < playersPerTeam)) {
-    const remainingPlayers = selectedPlayers
-      .filter(p => !usedPlayers.has(p.name))
-      .sort((a, b) => {
-        // Prioriza posições mais importantes
-        const positionPriority = { "Goleiro": 1, "Zagueiro": 2, "Lateral": 3, "Meio": 4, "Ataque": 5 };
-        return positionPriority[a.position] - positionPriority[b.position] || b.birthYear - a.birthYear;
-      });
-
-    if (remainingPlayers.length === 0) break;
-
-    // Encontra o time com menos jogadores
-    let targetTeam = 0;
-    let minPlayers = teams[0].length;
-    
-    for (let i = 1; i < numTeams; i++) {
-      if (teams[i].length < minPlayers) {
-        minPlayers = teams[i].length;
-        targetTeam = i;
-      }
-    }
-
-    if (teams[targetTeam].length < playersPerTeam && remainingPlayers.length > 0) {
-      teams[targetTeam].push(remainingPlayers[0]);
-      usedPlayers.add(remainingPlayers[0].name);
-    } else {
-      break;
-    }
-  }
-
-  // FASE 4: Balanceamento final por posição
-  balanceTeamsByPosition(teams, numTeams);
-
-  window.currentTeams = teams;
-
-  // Exibe os times
-  const display = document.getElementById("teamsDisplay");
-  display.innerHTML = "";
-
-  teams.forEach((team, i) => {
-    const teamNameInput = document.getElementById(`teamName${i + 1}`);
-    const teamName = teamNameInput && teamNameInput.value.trim() !== "" ? teamNameInput.value.trim() : `Time ${i + 1}`;
-
-    const positionOrder = { "Goleiro": 1, "Zagueiro": 2, "Lateral": 3, "Meio": 4, "Ataque": 5 };
-    const sortedTeam = [...team].sort((a, b) => positionOrder[a.position] - positionOrder[b.position] || a.name.localeCompare(b.name));
-    
-    const div = document.createElement("div");
-    div.className = "team";
-    div.innerHTML = `<strong>${teamName}</strong><br>` +
-                    sortedTeam.map(p => `${p.name} (${p.position}) - ${calculateAge(p.birthYear)} anos`).join('<br>');
-    display.appendChild(div);
-  });
-}
-
-// Função auxiliar para balancear times por posição
-function balanceTeamsByPosition(teams, numTeams) {
-  const positions = ["Zagueiro", "Lateral", "Meio", "Ataque"];
-  
-  positions.forEach(position => {
-    // Conta quantos jogadores de cada posição cada time tem
-    const positionCounts = teams.map(team => 
-      team.filter(player => player.position === position).length
-    );
-    
-    const maxCount = Math.max(...positionCounts);
-    const minCount = Math.min(...positionCounts);
-    
-    // Se a diferença for maior que 1, tenta rebalancear
-    if (maxCount - minCount > 1) {
-      const teamWithMost = positionCounts.indexOf(maxCount);
-      const teamWithLeast = positionCounts.indexOf(minCount);
-      
-      // Encontra um jogador desta posição no time com mais jogadores
-      const playerToMove = teams[teamWithMost].find(p => p.position === position);
-      
-      if (playerToMove && teams[teamWithLeast].length < 7) {
-        // Remove do time com mais
-        teams[teamWithMost] = teams[teamWithMost].filter(p => p.name !== playerToMove.name);
-        // Adiciona no time com menos
-        teams[teamWithLeast].push(playerToMove);
-      }
-    }
-  });
-}
-
-      const numTeams = parseInt(document.querySelector('input[name="teams"]:checked').value);
-      const playersPerTeam = 7; // Valor padrão fixo para jogadores por time (você pode mudar para 8 aqui)
-
-      if (selectedPlayers.length < numTeams * playersPerTeam) {
-        alert(`O número de jogadores selecionados (${selectedPlayers.length}) é insuficiente para formar ${numTeams} times de ${playersPerTeam} jogadores cada.`);
+<script>
+function sortearTimes() {
+    const numTimes = parseInt(document.getElementById("numTimes").value);
+    if (numTimes < 2 || numTimes > 3) {
+        alert("Escolha entre 2 ou 3 times.");
         return;
-      }
+    }
 
-      // Define a ordem de posição baseada na quantidade de jogadores por time
-      let positionOrderSchema;
-      if (playersPerTeam === 7) { //
-        positionOrderSchema = ["Goleiro", "Zagueiro", "Lateral", "Lateral", "Meio", "Meio", "Ataque"]; //
-      } else if (playersPerTeam === 8) { //
-        positionOrderSchema = ["Goleiro", "Zagueiro", "Zagueiro", "Lateral", "Lateral", "Meio", "Ataque", "Ataque"]; //
-      } else {
-          alert("Erro: Tamanho de time inválido configurado internamente.");
-          return;
-      }
+    // Copia lista de jogadores com idade
+    let jogadoresOrdenados = [...jogadores];
 
-      const positionPriority = { //
-        "Goleiro": 1, //
-        "Zagueiro": 2, //
-        "Lateral": 3, //
-        "Meio": 4, //
-        "Ataque": 5 //
-      };
+    // Ordena por idade (desc), com desempate aleatório
+    jogadoresOrdenados.sort((a, b) => {
+        if (b.idade === a.idade) {
+            return Math.random() - 0.5; // Aleatoriza quando idades iguais
+        }
+        return b.idade - a.idade; // Mais velhos primeiro
+    });
 
-      let teams = Array.from({ length: numTeams }, () => []); //
+    // Cria arrays para os times
+    let times = Array.from({ length: numTimes }, () => []);
 
-      // Agrupamento de jogadores por posição e ordenação por idade
-      const playersByPosition = {}; //
-      for (const pos of Object.keys(positionPriority)) { //
-          playersByPosition[pos] = selectedPlayers.filter(p => p.position === pos) //
-                                                 .sort((a, b) => a.birthYear - b.birthYear); //
-      }
+    // Distribui em snake draft
+    let index = 0;
+    let direcao = 1;
+    for (let jogador of jogadoresOrdenados) {
+        times[index].push(jogador);
+        index += direcao;
+        if (index === numTimes) {
+            index = numTimes - 1;
+            direcao = -1;
+        } else if (index < 0) {
+            index = 0;
+            direcao = 1;
+        }
+    }
 
-      let playerAddedToTeam = new Set(); // Para controlar jogadores já adicionados
+    // Mostra resultado
+    let html = "";
+    times.forEach((time, i) => {
+        html += `<h3>Time ${i + 1}</h3><ul>`;
+        time.forEach(jogador => {
+            html += `<li>${jogador.nome} - ${jogador.idade} anos</li>`;
+        });
+        html += "</ul>";
+    });
 
-      // Tenta distribuir os jogadores seguindo o esquema de posição
-      let currentTeamForSchema = 0; // Controla qual time está recebendo o jogador na rodada
-      for (let round = 0; round < playersPerTeam; round++) { // Rodadas para preencher cada posição do esquema
-          for (let i = 0; i < numTeams; i++) { // Iterar sobre o número de times
-              const teamToFill = (currentTeamForSchema + i) % numTeams; // Alterna o time de início
-              const requiredPosition = positionOrderSchema[round]; //
-
-              let playerFound = false; //
-              // Procura um jogador para a posição específica da rodada que ainda não foi adicionado
-              for (let j = 0; j < playersByPosition[requiredPosition].length; j++) { //
-                  const player = playersByPosition[requiredPosition][j]; //
-                  if (!playerAddedToTeam.has(player.name)) { //
-                      teams[teamToFill].push(player); //
-                      playerAddedToTeam.add(player.name); //
-                      playerFound = true; //
-                      break; //
-                  }
-              }
-
-              // Se não encontrou um jogador para a posição específica, pega o próximo disponível em ordem de prioridade
-              if (!playerFound) { //
-                  const availablePlayers = selectedPlayers.filter(p => !playerAddedToTeam.has(p.name)) //
-                                                          .sort((a,b) => positionPriority[a.position] - positionPriority[b.position] || a.birthYear - b.birthYear); //
-
-                  if (availablePlayers.length > 0) { //
-                      teams[teamToFill].push(availablePlayers[0]); //
-                      playerAddedToTeam.add(availablePlayers[0].name); //
-                  }
-              }
-          }
-          currentTeamForSchema++; // Avança para o próximo time inicial na próxima rodada
-      }
-
-      // Distribui os jogadores restantes (se houver)
-      const remainingPlayers = selectedPlayers.filter(p => !playerAddedToTeam.has(p.name)) //
-                                              .sort((a,b) => positionPriority[a.position] - positionPriority[b.position] || a.birthYear - b.birthYear); //
-
-      for (const player of remainingPlayers) { //
-          // Encontra o time com menos jogadores
-          let minPlayers = Infinity; //
-          let targetTeamIndex = -1; //
-          for (let i = 0; i < numTeams; i++) { //
-              if (teams[i].length < minPlayers) { //
-                  minPlayers = teams[i].length; //
-                  targetTeamIndex = i; //
-              }
-          }
-          if (targetTeamIndex !== -1) { //
-              teams[targetTeamIndex].push(player); //
-          }
-      }
-
-      window.currentTeams = teams; //
-
-      const display = document.getElementById("teamsDisplay"); //
-      display.innerHTML = ""; //
-
-      teams.forEach((team, i) => { //
-        const teamNameInput = document.getElementById(`teamName${i + 1}`); //
-        const teamName = teamNameInput && teamNameInput.value.trim() !== "" ? teamNameInput.value.trim() : `Time ${i + 1}`; //
-
-        // Ordena os jogadores do time pela posição para exibição
-        const sortedTeam = [...team].sort((a, b) => positionPriority[a.position] - positionPriority[b.position] || a.name.localeCompare(b.name)); //
-        const div = document.createElement("div"); //
-        div.className = "team"; //
-        div.innerHTML = `<strong>${teamName}</strong><br>` + //
-                        sortedTeam.map(p => `${p.name} (${p.position}) - ${calculateAge(p.birthYear)} anos`).join('<br>'); //
-        display.appendChild(div); //
-      });
+    document.getElementById("resultado").innerHTML = html;
     }
 
     function shareTeams() {
