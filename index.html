@@ -4,16 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sortear Times</title>
-  
-  <!-- PWA Configuration -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#000099">
-  <meta name="background-color" content="#ffffff">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Sortear Times">
-  <link rel="apple-touch-icon" href="icon-192x192.png">
-  
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -56,9 +46,6 @@
       margin-top: 10px;
       cursor: pointer;
     }
-    button:hover {
-      background-color: #000077;
-    }
     .teams {
       margin-top: 20px;
     }
@@ -71,9 +58,6 @@
     .share-btn {
       background-color: #800000;
       margin-top: 10px;
-    }
-    .share-btn:hover {
-      background-color: #660000;
     }
     #playerList li {
       display: flex;
@@ -89,9 +73,6 @@
     .import-btn {
       background-color: #196B24;
     }
-    .import-btn:hover {
-      background-color: #144a1c;
-    }
     input[type="text"] {
       padding: 5px;
       margin-top: 5px;
@@ -103,55 +84,9 @@
       background-color: #ffe6e6;
       font-weight: bold;
     }
-    
-    /* Install button styles */
-    .install-container {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      z-index: 1000;
-    }
-    .install-btn {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      border-radius: 50px;
-      cursor: pointer;
-      font-weight: bold;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      display: none;
-    }
-    .install-btn:hover {
-      background-color: #45a049;
-    }
-    
-    /* Offline indicator */
-    .offline-indicator {
-      background-color: #ff6b6b;
-      color: white;
-      padding: 10px;
-      text-align: center;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1001;
-      display: none;
-    }
   </style>
 </head>
 <body>
-  <!-- Offline indicator -->
-  <div class="offline-indicator" id="offlineIndicator">
-    🚫 Sem conexão com a internet
-  </div>
-
-  <!-- Install button -->
-  <div class="install-container">
-    <button class="install-btn" id="installBtn">📱 Instalar App</button>
-  </div>
-
   <div class="container">
     
   <div id="logo-container" style="display: flex; justify-content: center; align-items: center; width: 500px; height: 100px; margin-bottom: 10px;">
@@ -243,62 +178,6 @@
   </div>
   
   <script>
-    // Service Worker Registration
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(registration => {
-            console.log('SW registered: ', registration);
-          })
-          .catch(registrationError => {
-            console.log('SW registration failed: ', registrationError);
-          });
-      });
-    }
-
-    // PWA Install functionality
-    let deferredPrompt;
-    const installBtn = document.getElementById('installBtn');
-
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      installBtn.style.display = 'block';
-    });
-
-    installBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
-      
-      if (outcome === 'accepted') {
-        console.log('User accepted the install prompt');
-      }
-      
-      deferredPrompt = null;
-      installBtn.style.display = 'none';
-    });
-
-    window.addEventListener('appinstalled', () => {
-      console.log('PWA was installed');
-      installBtn.style.display = 'none';
-    });
-
-    // Network status monitoring
-    const offlineIndicator = document.getElementById('offlineIndicator');
-    
-    function updateOnlineStatus() {
-      if (navigator.onLine) {
-        offlineIndicator.style.display = 'none';
-      } else {
-        offlineIndicator.style.display = 'block';
-      }
-    }
-    
-    window.addEventListener('online', updateOnlineStatus);
-    window.addEventListener('offline', updateOnlineStatus);
-
     document.addEventListener('DOMContentLoaded', (event) => {
         const tituloElemento = document.getElementById('tituloComData');
         const hoje = new Date();
@@ -310,38 +189,12 @@
         const parte2 = "domingo às 8:00 na vila avaí";
 
         tituloElemento.textContent = `${parte1} ${dia}/${mes}/${ano} ${parte2}`;
-        
-        // Check initial online status
-        updateOnlineStatus();
     });
   </script>
 
   <script>
-    let players = [];
+    let players = JSON.parse(localStorage.getItem("jogadores") || "[]");
     let sortedPlayers = [];
-    
-    // Load players from localStorage or memory
-    function loadPlayers() {
-      try {
-        const stored = localStorage.getItem("jogadores");
-        if (stored) {
-          players = JSON.parse(stored);
-        }
-      } catch (e) {
-        console.log('LocalStorage not available, using memory storage');
-      }
-    }
-    
-    // Save players to localStorage or memory
-    function savePlayers() {
-      try {
-        localStorage.setItem("jogadores", JSON.stringify(players));
-      } catch (e) {
-        console.log('LocalStorage not available, using memory storage');
-      }
-    }
-    
-    loadPlayers();
     
     // Jogadores que sempre devem ficar em times diferentes
     const specialPlayers = ["Henrique Lima", "Felipe Nascimento", "Jean Mendes"];
@@ -453,7 +306,7 @@
           });
 
           if (addedCount > 0) {
-              savePlayers();
+              localStorage.setItem("jogadores", JSON.stringify(players));
               renderPlayers();
           }
           alert(`${addedCount} jogadores importados com sucesso!\n${skippedCount} linhas foram ignoradas (dados inválidos ou duplicados).`);
@@ -490,7 +343,7 @@
       players.push({ name, position, birthYear });
       document.getElementById("playerName").value = "";
       document.getElementById("playerBirthYear").value = "";
-      savePlayers();
+      localStorage.setItem("jogadores", JSON.stringify(players));
       renderPlayers();
     }
 
@@ -498,7 +351,7 @@
       const originalIndex = players.findIndex(p => p.name === sortedPlayers[index].name);
       if (confirm(`Tem certeza que deseja remover ${players[originalIndex].name} da lista permanentemente?`)) {
         players.splice(originalIndex, 1);
-        savePlayers();
+        localStorage.setItem("jogadores", JSON.stringify(players));
         renderPlayers();
       }
     }
@@ -528,11 +381,7 @@
     function deleteAllPlayers() {
       if (confirm("Tem certeza que deseja excluir todos os jogadores? Isso não pode ser desfeito.")) {
         players = [];
-        try {
-          localStorage.removeItem("jogadores");
-        } catch (e) {
-          console.log('LocalStorage not available');
-        }
+        localStorage.removeItem("jogadores");
         renderPlayers();
       }
     }
@@ -744,106 +593,6 @@
         
         sortedTeam.forEach(p => {
           const isSpecial = isSpecialPlayer(p.name);
-          message += `- ${p.name} (${p.position}) - ${p.age} anos ${isSpecial ? '⚠️' : ''}\n`;
-        });
-        message += "\n";
-      });
-
-      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank');
-    }
-
-    document.getElementById("csvFileInput").addEventListener("change", handleFileSelect);
-  </script>
-
-  <!-- Manifest and service worker data -->
-  <script id="manifest-data" type="application/json">
-  {
-    "name": "Sortear Times - Futebol Arte",
-    "short_name": "Sortear Times",
-    "description": "Aplicativo para sortear times de futebol de forma equilibrada",
-    "start_url": ".",
-    "display": "standalone",
-    "background_color": "#ffffff",
-    "theme_color": "#000099",
-    "orientation": "portrait",
-    "icons": [
-      {
-        "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiByeD0iMjQiIGZpbGw9IiMwMDAwOTkiLz4KPHN2ZyB4PSI0OCIgeT0iNDgiIHdpZHRoPSI5NiIgaGVpZ2h0PSI5NiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIj4KPHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTAiIHN0cm9rZT0iI2ZmZmZmZiIgc3Ryb2tlLXdpZHRoPSIyIiBmaWxsPSJub25lIi8+CjxwYXRoIGQ9Im0xMiA2IDQgNi00IDYtNC02IDR6IiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPgo8L3N2Zz4KPC9zdmc+Cjwvc3ZnPg==",
-        "sizes": "192x192",
-        "type": "image/svg+xml"
-      },
-      {
-        "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiByeD0iNjQiIGZpbGw9IiMwMDAwOTkiLz4KPHN2ZyB4PSIxMjgiIHk9IjEyOCIgd2lkdGg9IjI1NiIgaGVpZ2h0PSIyNTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSI+CjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iMiIgZmlsbD0ibm9uZSIvPgo8cGF0aCBkPSJtMTIgNiA0IDYtNCA2LTQtNiA0eiIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIGZpbGw9Im5vbmUiLz4KPC9zdmc+Cjwvc3ZnPgo=",
-        "sizes": "512x512",
-        "type": "image/svg+xml"
-      }
-    ],
-    "categories": ["sports", "utilities"],
-    "lang": "pt-BR"
-  }
-  </script>
-
-  <script id="sw-code">
-    const CACHE_NAME = 'sortear-times-v1';
-    const urlsToCache = [
-      '.',
-      'manifest.json'
-    ];
-
-    // Install event
-    self.addEventListener('install', (event) => {
-      event.waitUntil(
-        caches.open(CACHE_NAME)
-          .then((cache) => {
-            return cache.addAll(urlsToCache);
-          })
-      );
-    });
-
-    // Fetch event
-    self.addEventListener('fetch', (event) => {
-      event.respondWith(
-        caches.match(event.request)
-          .then((response) => {
-            // Return cached version or fetch from network
-            return response || fetch(event.request);
-          }
-        )
-      );
-    });
-  </script>
-
-  <script>
-    // Create and register service worker and manifest dynamically
-    function createServiceWorker() {
-      const swCode = document.getElementById('sw-code').textContent;
-      const blob = new Blob([swCode], { type: 'application/javascript' });
-      const swUrl = URL.createObjectURL(blob);
-      
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register(swUrl);
-      }
-    }
-
-    function createManifest() {
-      const manifestData = JSON.parse(document.getElementById('manifest-data').textContent);
-      const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
-      const manifestUrl = URL.createObjectURL(manifestBlob);
-      
-      const manifestLink = document.createElement('link');
-      manifestLink.rel = 'manifest';
-      manifestLink.href = manifestUrl;
-      document.head.appendChild(manifestLink);
-    }
-
-    // Initialize PWA features
-    createManifest();
-    createServiceWorker();
-  </script>
-
-</body>
-</html> isSpecial = isSpecialPlayer(p.name);
           html += `<li>${p.name} (${p.position}) - ${p.age} anos ${isSpecial ? '⚠️' : ''}</li>`;
         });
         
@@ -881,4 +630,17 @@
         const sortedTeam = [...team].sort((a, b) => positionOrder[a.position] - positionOrder[b.position]);
 
         sortedTeam.forEach(p => {
-          const
+          const isSpecial = isSpecialPlayer(p.name);
+          message += `- ${p.name} (${p.position}) - ${p.age} anos ${isSpecial ? '⚠️' : ''}\n`;
+        });
+        message += "\n";
+      });
+
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+    }
+
+    document.getElementById("csvFileInput").addEventListener("change", handleFileSelect);
+  </script>
+</body>
+</html>
