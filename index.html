@@ -46,7 +46,7 @@
       margin-top: 10px;
       cursor: pointer;
     }
-    .teams {
+     .teams {
       margin-top: 12px;
     }
     .team {
@@ -54,6 +54,23 @@
       margin-bottom: 10px;
       padding: 10px;
       border-radius: 5px;
+      font-size: 12px; /* Tamanho da fonte geral dos times */
+    }
+    .team h3 {
+      font-size: 14px; /* Título do time (ex: "Tadala Blue") */
+      margin: 0 0 8px 0;
+    }
+    .team p {
+      font-size: 11px; /* Texto "Posições:" */
+      margin: 5px 0;
+    }
+    .team ul {
+      font-size: 11px; /* Lista de jogadores */
+      margin: 5px 0;
+      padding-left: 20px;
+    }
+    .team li {
+      margin-bottom: 2px;
     }
     .share-btn {
       background-color: #800000;
@@ -90,10 +107,10 @@
   <div class="container">
     
   <div id="logo-container" style="display: flex; justify-content: center; align-items: center; width: 500px; height: 100px; margin-bottom: 10px;">
-      <img src="logo.png" alt="Logo" style="max-width: 80%; max-height:100%;">
+      <img src="logo.png" alt="Logo" style="max-width: 100%; max-height:130%;">
   </div>
 	
-      <h1 id="tituloComData">Sorteio Futebol domingo às 8:00 na vila avaí</h1>
+      <h1 id="tituloComData">Sorteio Futebol Arte 03/08/2025 domingo às 8:00 na vila avaí</h1>
 
     <div class="player-input">
       <input type="text" id="playerName" placeholder="Nome do jogador" />
@@ -231,6 +248,11 @@
     function calculateAge(birthYear) {
       const currentYear = new Date().getFullYear();
       return currentYear - birthYear;
+    }
+
+    function updateSelectedCount() {
+      const count = document.querySelectorAll('.player-checkbox:checked').length;
+      document.getElementById("selectedCount").textContent = `Selecionados: ${count} jogador${count === 1 ? '' : 'es'}`;
     }
 
     function isSpecialPlayer(playerName) {
