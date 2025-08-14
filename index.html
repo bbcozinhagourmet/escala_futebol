@@ -233,11 +233,6 @@
       return currentYear - birthYear;
     }
 
-    function updateSelectedCount() {
-      const count = document.querySelectorAll('.player-checkbox:checked').length;
-      document.getElementById("selectedCount").textContent = `Selecionados: ${count} jogador${count === 1 ? '' : 'es'}`;
-    }
-
     function isSpecialPlayer(playerName) {
       return specialPlayers.some(special => 
         playerName.toLowerCase().includes(special.toLowerCase()) || 
