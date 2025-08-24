@@ -112,6 +112,15 @@
       background-color: #ffe6e6;
       font-weight: bold;
     }
+    .csv-help {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 11px;
+      color: #6c757d;
+    }
   </style>
 </head>
 <body>
@@ -136,8 +145,14 @@
     </div>
     <button onclick="addPlayer()">Adicionar Novo Jogador</button>
 
-    <input type="file" id="csvFileInput" accept=".csv" style="display: none;">
+    <input type="file" id="csvFileInput" accept=".csv,.txt" style="display: none;">
     <button class="import-btn" onclick="document.getElementById('csvFileInput').click()">Importar de Arquivo (CSV)</button>
+    
+    <div class="csv-help">
+      <strong>Formato do CSV:</strong> Nome,Posição,AnoNascimento<br>
+      <strong>Exemplo:</strong> João Silva,Goleiro,1990<br>
+      <strong>Posições válidas:</strong> Goleiro, Zagueiro, Lateral, Meio, Ataque
+    </div>
 
     <hr style="margin: 20px 0;">
 
@@ -206,6 +221,9 @@
   </div>
   
   <script>
+    // Lista de jogadores especiais (vazia por padrão - você pode adicionar nomes aqui)
+    const specialPlayers = [];
+    
     document.addEventListener('DOMContentLoaded', (event) => {
         const tituloElemento = document.getElementById('tituloComData');
         const hoje = new Date();
@@ -217,12 +235,35 @@
         const parte2 = "domingo às 8:00 na vila avaí";
 
         tituloElemento.textContent = `${parte1} ${dia}/${mes}/${ano} ${parte2}`;
+        
+        // Configura o estado inicial dos grupos de times
+        const initialRadio = document.querySelector('input[name="teams"]:checked');
+        if (initialRadio) {
+            const count = parseInt(initialRadio.value);
+            for (let i = 1; i <= 4; i++) {
+                const teamGroup = document.getElementById(`teamGroup${i}`);
+                if (teamGroup) {
+                    teamGroup.style.display = i <= count ? 'flex' : 'none';
+                }
+            }
+        }
     });
   </script>
 
   <script>
-    let players = JSON.parse(localStorage.getItem("jogadores") || "[]");
+    let players = [];
     let sortedPlayers = [];
+    
+    // Carrega jogadores do localStorage
+    try {
+        const savedPlayers = localStorage.getItem("jogadores");
+        if (savedPlayers) {
+            players = JSON.parse(savedPlayers);
+        }
+    } catch (e) {
+        console.log("Erro ao carregar jogadores:", e);
+        players = [];
+    }
     
     renderPlayers();
 
@@ -237,20 +278,6 @@
           }
         }
       });
-    });
-
-    // Chama a função de alteração ao carregar a página para garantir o estado inicial correto
-    document.addEventListener('DOMContentLoaded', (event) => {
-        const initialRadio = document.querySelector('input[name="teams"]:checked');
-        if (initialRadio) {
-            const count = parseInt(initialRadio.value);
-            for (let i = 1; i <= 4; i++) {
-                const teamGroup = document.getElementById(`teamGroup${i}`);
-                if (teamGroup) {
-                    teamGroup.style.display = i <= count ? 'flex' : 'none';
-                }
-            }
-        }
     });
 
     function calculateAge(birthYear) {
@@ -295,49 +322,116 @@
       document.getElementById("playerTitle").textContent = `Selecione os Jogadores Presentes: (${players.length} jogador${players.length === 1 ? '' : 'es'} no total)`;
     }
 
-     function handleFileSelect(event) {
-   const file = event.target.files[0];
-   if (!file) return;
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
 
-   const reader = new FileReader();
-   reader.onload = function(e) {
-          const text = e.target.result;
-          const lines = text.split('\n').filter(line => line.trim() !== '');
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const text = e.target.result;
+                console.log("Conteúdo do arquivo:", text); // Debug
+                
+                // Remove BOM se presente e divide em linhas
+                const cleanText = text.replace(/^\uFEFF/, '');
+                const lines = cleanText.split(/\r\n|\n|\r/).filter(line => line.trim() !== '');
+                
+                console.log("Linhas encontradas:", lines); // Debug
 
-          let addedCount = 0;
-          let skippedCount = 0;
-          const validPositions = ["Goleiro", "Zagueiro", "Lateral", "Meio", "Ataque"];
+                let addedCount = 0;
+                let skippedCount = 0;
+                const validPositions = ["Goleiro", "Zagueiro", "Lateral", "Meio", "Ataque"];
+                const errors = [];
 
-          lines.forEach(line => {
-              const parts = line.split(',');
-              if (parts.length === 3) {
-                  const name = parts[0].trim();
-                  const position = parts[1].trim();
-                  const birthYear = parseInt(parts[2].trim(), 10);
+                lines.forEach((line, lineIndex) => {
+                    console.log(`Processando linha ${lineIndex + 1}:`, line); // Debug
+                    
+                    // Tenta diferentes separadores
+                    let parts = line.split(',');
+                    if (parts.length < 3) {
+                        parts = line.split(';');
+                    }
+                    if (parts.length < 3) {
+                        parts = line.split('\t');
+                    }
 
-                  const isPlayerNew = !players.some(p => p.name.toLowerCase() === name.toLowerCase());
-                  const isPositionValid = validPositions.includes(position);
-                  const isBirthYearValid = !isNaN(birthYear) && birthYear >= 1950 && birthYear <= 2025;
+                    if (parts.length >= 3) {
+                        const name = parts[0].trim().replace(/"/g, '');
+                        const position = parts[1].trim().replace(/"/g, '');
+                        const birthYearStr = parts[2].trim().replace(/"/g, '');
+                        const birthYear = parseInt(birthYearStr, 10);
 
-                  if (name && isPositionValid && isBirthYearValid && isPlayerNew) {
-                      players.push({ name, position, birthYear });
-                      addedCount++;
-                  } else {
-                      skippedCount++;
-                  }
-              } else {
-                  skippedCount++;
-              }
-          });
+                        console.log(`Dados extraídos: nome="${name}", posição="${position}", ano=${birthYear}`); // Debug
 
-          if (addedCount > 0) {
-              localStorage.setItem("jogadores", JSON.stringify(players));
-              renderPlayers();
-          }
-          alert(`${addedCount} jogadores importados com sucesso!\n${skippedCount} linhas foram ignoradas (dados inválidos ou duplicados).`);
-      };
-      reader.readAsText(file);
-      event.target.value = '';
+                        // Validações
+                        if (!name) {
+                            errors.push(`Linha ${lineIndex + 1}: Nome vazio`);
+                            skippedCount++;
+                            return;
+                        }
+
+                        if (!validPositions.includes(position)) {
+                            errors.push(`Linha ${lineIndex + 1}: Posição inválida "${position}". Use: ${validPositions.join(', ')}`);
+                            skippedCount++;
+                            return;
+                        }
+
+                        if (isNaN(birthYear) || birthYear < 1950 || birthYear > 2025) {
+                            errors.push(`Linha ${lineIndex + 1}: Ano de nascimento inválido "${birthYearStr}"`);
+                            skippedCount++;
+                            return;
+                        }
+
+                        const isPlayerNew = !players.some(p => p.name.toLowerCase() === name.toLowerCase());
+                        if (!isPlayerNew) {
+                            errors.push(`Linha ${lineIndex + 1}: Jogador "${name}" já existe`);
+                            skippedCount++;
+                            return;
+                        }
+
+                        // Se chegou até aqui, adiciona o jogador
+                        players.push({ name, position, birthYear });
+                        addedCount++;
+                        console.log(`Jogador adicionado: ${name}`); // Debug
+
+                    } else {
+                        errors.push(`Linha ${lineIndex + 1}: Formato inválido. Esperado: Nome,Posição,Ano`);
+                        skippedCount++;
+                    }
+                });
+
+                // Salva no localStorage se houver jogadores adicionados
+                if (addedCount > 0) {
+                    localStorage.setItem("jogadores", JSON.stringify(players));
+                    renderPlayers();
+                }
+
+                // Monta mensagem de resultado
+                let message = `✅ ${addedCount} jogadores importados com sucesso!\n`;
+                if (skippedCount > 0) {
+                    message += `⚠️ ${skippedCount} linhas foram ignoradas.\n`;
+                }
+                
+                if (errors.length > 0 && errors.length <= 5) {
+                    message += "\nErros encontrados:\n" + errors.join('\n');
+                } else if (errors.length > 5) {
+                    message += `\nErros encontrados (mostrando os primeiros 5 de ${errors.length}):\n` + errors.slice(0, 5).join('\n');
+                }
+
+                alert(message);
+
+            } catch (error) {
+                console.error("Erro ao processar arquivo:", error);
+                alert("Erro ao processar o arquivo. Verifique se é um arquivo CSV válido.");
+            }
+        };
+
+        reader.onerror = function() {
+            alert("Erro ao ler o arquivo.");
+        };
+
+        reader.readAsText(file, 'UTF-8');
+        event.target.value = ''; // Limpa o input para permitir selecionar o mesmo arquivo novamente
     }
 
     function addPlayer() {
@@ -592,6 +686,26 @@
         
         // Calcula idade média do time
         const averageAge = team.length > 0 ? (team.reduce((sum, p) => sum + p.age, 0) / team.length).toFixed(1) : 0;
+
+        message += `*${teamName}* (Idade média: ${averageAge} anos)\n`;
+        
+        // Ordena os jogadores do time pela posição antes de adicioná-los à mensagem
+        const sortedTeam = [...team].sort((a, b) => positionOrder[a.position] - positionOrder[b.position]);
+
+        sortedTeam.forEach(p => {
+          const isSpecial = isSpecialPlayer(p.name);
+          message += `- ${p.name} (${p.position}) - ${p.age} anos ${isSpecial ? '⚠️' : ''}\n`;
+        });
+        message += "\n";
+      });
+
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(whatsappUrl, '_blank');
+    }
+
+  </script>
+</body>
+</html> + p.age, 0) / team.length).toFixed(1) : 0;
         
         // Conta jogadores por posição
         const positionCounts = {
@@ -647,25 +761,4 @@
         const teamName = teamNameInput && teamNameInput.value.trim() !== "" ? teamNameInput.value.trim() : `Time ${i + 1}`;
         
         // Calcula idade média do time
-        const averageAge = team.length > 0 ? (team.reduce((sum, p) => sum + p.age, 0) / team.length).toFixed(1) : 0;
-
-        message += `*${teamName}* (Idade média: ${averageAge} anos)\n`;
-        
-        // Ordena os jogadores do time pela posição antes de adicioná-los à mensagem
-        const sortedTeam = [...team].sort((a, b) => positionOrder[a.position] - positionOrder[b.position]);
-
-        sortedTeam.forEach(p => {
-          const isSpecial = isSpecialPlayer(p.name);
-          message += `- ${p.name} (${p.position}) - ${p.age} anos ${isSpecial ? '⚠️' : ''}\n`;
-        });
-        message += "\n";
-      });
-
-      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-      window.open(whatsappUrl, '_blank');
-    }
-
-    document.getElementById("csvFileInput").addEventListener("change", handleFileSelect);
-  </script>
-</body>
-</html>
+        const averageAge = team.length > 0 ? (team.reduce((sum, p) => sum
