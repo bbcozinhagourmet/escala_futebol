@@ -224,9 +224,6 @@
     let players = JSON.parse(localStorage.getItem("jogadores") || "[]");
     let sortedPlayers = [];
     
-    // Jogadores que sempre devem ficar em times diferentes
-    const specialPlayers = ["Henrique Lima", "Felipe Nascimento", "Jean Mendes","Marcelo Gomes"];
-    
     renderPlayers();
 
     // Mostrar/esconder campos de nomes dos times conforme número de times selecionado
