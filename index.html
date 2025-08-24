@@ -672,18 +672,15 @@
       window.currentTeams.forEach((team, i) => {
         const teamNameInput = document.getElementById(`teamName${i + 1}`);
         const teamName = teamNameInput && teamNameInput.value.trim() !== "" ? teamNameInput.value.trim() : `Time ${i + 1}`;
-        
-        // Calcula idade média do time
-        const averageAge = team.length > 0 ? (team.reduce((sum, p) => sum + p.age, 0) / team.length).toFixed(1) : 0;
 
-        message += `*${teamName}* (Idade média: ${averageAge} anos)\n`;
+        message += `*${teamName}*\n`;
         
         // Ordena os jogadores do time pela posição antes de adicioná-los à mensagem
         const sortedTeam = [...team].sort((a, b) => positionOrder[a.position] - positionOrder[b.position]);
 
         sortedTeam.forEach(p => {
           const isSpecial = isSpecialPlayer(p.name);
-          message += `- ${p.name} (${p.position}) - ${p.age} anos ${isSpecial ? '⚠️' : ''}\n`;
+          message += `- ${p.name} (${p.position}) ${isSpecial ? '⚠️' : ''}\n`;
         });
         message += "\n";
       });
