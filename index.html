@@ -298,47 +298,49 @@
       document.getElementById("playerTitle").textContent = `Selecione os Jogadores Presentes: (${players.length} jogador${players.length === 1 ? '' : 'es'} no total)`;
     }
 
-     function handleFileSelect(event) {
-   const file = event.target.files[0];
-   if (!file) return;
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
 
-   const reader = new FileReader();
-   reader.onload = function(e) {
-          const text = e.target.result;
-          const lines = text.split('\n').filter(line => line.trim() !== '');
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const text = e.target.result;
+        const lines = text.split('\n').filter(line => line.trim() !== '');
 
-          let addedCount = 0;
-          let skippedCount = 0;
-          const validPositions = ["Goleiro", "Zagueiro", "Lateral", "Meio", "Ataque"];
+        let addedCount = 0;
+        let skippedCount = 0;
+        const validPositions = ["Goleiro", "Zagueiro", "Lateral", "Meio", "Ataque"];
 
-          lines.forEach(line => {
-              const parts = line.split(',');
-              if (parts.length === 3) {
-                  const name = parts[0].trim();
-                  const position = parts[1].trim();
-                  const birthYear = parseInt(parts[2].trim(), 10);
+        lines.forEach(line => {
+          const parts = line.split(',');
+          if (parts.length >= 3) {
+            const name = parts[0].trim();
+            const position = parts[1].trim();
+            const birthYear = parseInt(parts[2].trim(), 10);
 
-                  const isPlayerNew = !players.some(p => p.name.toLowerCase() === name.toLowerCase());
-                  const isPositionValid = validPositions.includes(position);
-                  const isBirthYearValid = !isNaN(birthYear) && birthYear >= 1950 && birthYear <= 2025;
+            const isPlayerNew = !players.some(p => p.name.toLowerCase() === name.toLowerCase());
+            const isPositionValid = validPositions.includes(position);
+            const isBirthYearValid = !isNaN(birthYear) && birthYear >= 1950 && birthYear <= 2025;
 
-                  if (name && isPositionValid && isBirthYearValid && isPlayerNew) {
-                      players.push({ name, position, birthYear });
-                      addedCount++;
-                  } else {
-                      skippedCount++;
-                  }
-              } else {
-                  skippedCount++;
-              }
-          });
-
-          if (addedCount > 0) {
-              localStorage.setItem("jogadores", JSON.stringify(players));
-              renderPlayers();
+            if (name && isPositionValid && isBirthYearValid && isPlayerNew) {
+              players.push({ name, position, birthYear });
+              addedCount++;
+            } else {
+              skippedCount++;
+            }
+          } else {
+            skippedCount++;
           }
-          alert(`${addedCount} jogadores importados com sucesso!\n${skippedCount} linhas foram ignoradas (dados inválidos ou duplicados).`);
+        });
+
+        if (addedCount > 0) {
+          localStorage.setItem("jogadores", JSON.stringify(players));
+          renderPlayers();
+        }
+        
+        alert(`${addedCount} jogadores importados com sucesso!\n${skippedCount} linhas foram ignoradas (dados inválidos ou duplicados).`);
       };
+      
       reader.readAsText(file);
       event.target.value = '';
     }
@@ -590,7 +592,7 @@
 
     function shuffleArray(array) {
       const shuffled = [...array];
-      for (let i = shuffled.length - 1; i > 0; i > 0; i--) {
+      for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
@@ -693,4 +695,4 @@
     document.getElementById("csvFileInput").addEventListener("change", handleFileSelect);
   </script>
 </body>
-	</html>
+</html>
